@@ -1,0 +1,620 @@
+{
+  "document": {
+    "id": "statement-2025",
+    "fileName": "financial-statement-2025.pdf",
+    "mimeType": "application/pdf",
+    "size": 2980
+  },
+  "fieldSources": {
+    "companyName": {
+      "fileId": "statement-2025",
+      "value": "Northwind Components s.r.o.",
+      "content": "Northwind Components s.r.o.",
+      "confidence": 0.98,
+      "boundingBoxes": [
+        {
+          "pageNumber": 1,
+          "polygon": [
+            0.2318253968253968,
+            0.11996820052375606,
+            0.4737469576719576,
+            0.11996820052375606,
+            0.4737469576719576,
+            0.13659745604190046,
+            0.2318253968253968,
+            0.13659745604190046
+          ],
+          "bbox": {
+            "x": 0.2318,
+            "y": 0.12,
+            "width": 0.2419,
+            "height": 0.0166
+          }
+        }
+      ]
+    },
+    "registrationNumber": {
+      "fileId": "statement-2025",
+      "value": "08741225",
+      "content": "087 41 225",
+      "confidence": 0.91,
+      "boundingBoxes": [
+        {
+          "pageNumber": 1,
+          "polygon": [
+            0.2318253968253968,
+            0.14134867190422742,
+            0.3226068783068783,
+            0.14134867190422742,
+            0.3226068783068783,
+            0.15797792742237182,
+            0.2318253968253968,
+            0.15797792742237182
+          ],
+          "bbox": {
+            "x": 0.2318,
+            "y": 0.1413,
+            "width": 0.0908,
+            "height": 0.0166
+          }
+        }
+      ]
+    },
+    "periodStart": {
+      "fileId": "statement-2025",
+      "value": "2025-01-01",
+      "content": "1 Jan 2025 - 31 Dec 2025",
+      "confidence": 0.86,
+      "boundingBoxes": [
+        {
+          "pageNumber": 1,
+          "polygon": [
+            0.2318253968253968,
+            0.1627291432846988,
+            0.4318503968253968,
+            0.1627291432846988,
+            0.4318503968253968,
+            0.1793583988028432,
+            0.2318253968253968,
+            0.1793583988028432
+          ],
+          "bbox": {
+            "x": 0.2318,
+            "y": 0.1627,
+            "width": 0.2,
+            "height": 0.0166
+          }
+        }
+      ]
+    },
+    "periodEnd": {
+      "fileId": "statement-2025",
+      "value": "2025-12-31",
+      "content": "1 Jan 2025 - 31 Dec 2025",
+      "confidence": 0.86,
+      "boundingBoxes": [
+        {
+          "pageNumber": 1,
+          "polygon": [
+            0.2318253968253968,
+            0.1627291432846988,
+            0.4318503968253968,
+            0.1627291432846988,
+            0.4318503968253968,
+            0.1793583988028432,
+            0.2318253968253968,
+            0.1793583988028432
+          ],
+          "bbox": {
+            "x": 0.2318,
+            "y": 0.1627,
+            "width": 0.2,
+            "height": 0.0166
+          }
+        }
+      ]
+    },
+    "currency": {
+      "fileId": "statement-2025",
+      "value": "CZK",
+      "content": "CZK thousands",
+      "confidence": 0.95,
+      "boundingBoxes": [
+        {
+          "pageNumber": 1,
+          "polygon": [
+            0.2318253968253968,
+            0.1841096146651702,
+            0.3543232804232804,
+            0.1841096146651702,
+            0.3543232804232804,
+            0.2007388701833146,
+            0.2318253968253968,
+            0.2007388701833146
+          ],
+          "bbox": {
+            "x": 0.2318,
+            "y": 0.1841,
+            "width": 0.1225,
+            "height": 0.0166
+          }
+        }
+      ]
+    },
+    "revenue": {
+      "fileId": "statement-2025",
+      "value": 184250,
+      "content": "184 250",
+      "confidence": 0.97,
+      "boundingBoxes": [
+        {
+          "pageNumber": 1,
+          "polygon": [
+            0.6671457671957672,
+            0.2886363636363636,
+            0.7345767195767197,
+            0.2886363636363636,
+            0.7345767195767197,
+            0.305265619154508,
+            0.6671457671957672,
+            0.305265619154508
+          ],
+          "bbox": {
+            "x": 0.6671,
+            "y": 0.2886,
+            "width": 0.0674,
+            "height": 0.0166
+          }
+        }
+      ]
+    },
+    "costOfSales": {
+      "fileId": "statement-2025",
+      "value": -112480,
+      "content": "-112 480",
+      "confidence": 0.93,
+      "boundingBoxes": [
+        {
+          "pageNumber": 1,
+          "polygon": [
+            0.6615517195767195,
+            0.31239244294799845,
+            0.7345767195767196,
+            0.31239244294799845,
+            0.7345767195767196,
+            0.3290216984661429,
+            0.6615517195767195,
+            0.3290216984661429
+          ],
+          "bbox": {
+            "x": 0.6616,
+            "y": 0.3124,
+            "width": 0.073,
+            "height": 0.0166
+          }
+        }
+      ]
+    },
+    "personnelCosts": {
+      "fileId": "statement-2025",
+      "value": -38920,
+      "content": "-38 920",
+      "confidence": 0.89,
+      "boundingBoxes": [
+        {
+          "pageNumber": 1,
+          "polygon": [
+            0.6708919312169312,
+            0.3361485222596333,
+            0.7345767195767196,
+            0.3361485222596333,
+            0.7345767195767196,
+            0.35277777777777775,
+            0.6708919312169312,
+            0.35277777777777775
+          ],
+          "bbox": {
+            "x": 0.6709,
+            "y": 0.3361,
+            "width": 0.0637,
+            "height": 0.0166
+          }
+        }
+      ]
+    },
+    "depreciation": {
+      "fileId": "statement-2025",
+      "value": -5870,
+      "content": "-5 870",
+      "confidence": 0.64,
+      "boundingBoxes": [
+        {
+          "pageNumber": 1,
+          "polygon": [
+            0.8650205026455026,
+            0.3599046015712682,
+            0.9193650793650793,
+            0.3599046015712682,
+            0.9193650793650793,
+            0.3765338570894126,
+            0.8650205026455026,
+            0.3765338570894126
+          ],
+          "bbox": {
+            "x": 0.865,
+            "y": 0.3599,
+            "width": 0.0543,
+            "height": 0.0166
+          }
+        }
+      ]
+    },
+    "operatingProfit": {
+      "fileId": "statement-2025",
+      "value": 26710,
+      "content": "26 710",
+      "confidence": 0.92,
+      "boundingBoxes": [
+        {
+          "pageNumber": 1,
+          "polygon": [
+            0.6764859788359789,
+            0.38366068088290306,
+            0.7345767195767197,
+            0.38366068088290306,
+            0.7345767195767197,
+            0.4002899364010475,
+            0.6764859788359789,
+            0.4002899364010475
+          ],
+          "bbox": {
+            "x": 0.6765,
+            "y": 0.3837,
+            "width": 0.0581,
+            "height": 0.0166
+          }
+        }
+      ]
+    },
+    "interestExpense": {
+      "fileId": "statement-2025",
+      "value": 2310,
+      "content": "-2 310",
+      "confidence": 0.58,
+      "boundingBoxes": [
+        {
+          "pageNumber": 1,
+          "polygon": [
+            0.6802321428571428,
+            0.40741676019453793,
+            0.7345767195767196,
+            0.40741676019453793,
+            0.7345767195767196,
+            0.42404601571268236,
+            0.6802321428571428,
+            0.42404601571268236
+          ],
+          "bbox": {
+            "x": 0.6802,
+            "y": 0.4074,
+            "width": 0.0543,
+            "height": 0.0166
+          }
+        }
+      ]
+    },
+    "incomeTax": {
+      "fileId": "statement-2025",
+      "value": -4640,
+      "content": "-4 640",
+      "confidence": 0.88,
+      "boundingBoxes": [
+        {
+          "pageNumber": 1,
+          "polygon": [
+            0.6802321428571428,
+            0.43117283950617274,
+            0.7345767195767196,
+            0.43117283950617274,
+            0.7345767195767196,
+            0.44780209502431717,
+            0.6802321428571428,
+            0.44780209502431717
+          ],
+          "bbox": {
+            "x": 0.6802,
+            "y": 0.4312,
+            "width": 0.0543,
+            "height": 0.0166
+          }
+        }
+      ]
+    },
+    "netProfit": {
+      "fileId": "statement-2025",
+      "value": 19760,
+      "content": "19 760",
+      "confidence": 0.95,
+      "boundingBoxes": [
+        {
+          "pageNumber": 1,
+          "polygon": [
+            0.6764859788359789,
+            0.4549289188178076,
+            0.7345767195767197,
+            0.4549289188178076,
+            0.7345767195767197,
+            0.47155817433595204,
+            0.6764859788359789,
+            0.47155817433595204
+          ],
+          "bbox": {
+            "x": 0.6765,
+            "y": 0.4549,
+            "width": 0.0581,
+            "height": 0.0166
+          }
+        }
+      ]
+    },
+    "fixedAssets": {
+      "fileId": "statement-2025",
+      "value": 58300,
+      "content": "58 300",
+      "confidence": 0.94,
+      "boundingBoxes": [
+        {
+          "pageNumber": 2,
+          "polygon": [
+            0.8612743386243386,
+            0.09858772914328469,
+            0.9193650793650793,
+            0.09858772914328469,
+            0.9193650793650793,
+            0.1152169846614291,
+            0.8612743386243386,
+            0.1152169846614291
+          ],
+          "bbox": {
+            "x": 0.8613,
+            "y": 0.0986,
+            "width": 0.0581,
+            "height": 0.0166
+          }
+        }
+      ]
+    },
+    "currentAssets": {
+      "fileId": "statement-2025",
+      "value": 71450,
+      "content": "71 450",
+      "confidence": 0.9,
+      "boundingBoxes": [
+        {
+          "pageNumber": 2,
+          "polygon": [
+            0.8612743386243386,
+            0.12234380845491954,
+            0.9193650793650793,
+            0.12234380845491954,
+            0.9193650793650793,
+            0.13897306397306394,
+            0.8612743386243386,
+            0.13897306397306394
+          ],
+          "bbox": {
+            "x": 0.8613,
+            "y": 0.1223,
+            "width": 0.0581,
+            "height": 0.0166
+          }
+        }
+      ]
+    },
+    "totalAssets": {
+      "fileId": "statement-2025",
+      "value": 129750,
+      "content": "129 750",
+      "confidence": 0.96,
+      "boundingBoxes": [
+        {
+          "pageNumber": 2,
+          "polygon": [
+            0.8519341269841271,
+            0.14609988776655441,
+            0.9193650793650794,
+            0.14609988776655441,
+            0.9193650793650794,
+            0.1627291432846988,
+            0.8519341269841271,
+            0.1627291432846988
+          ],
+          "bbox": {
+            "x": 0.8519,
+            "y": 0.1461,
+            "width": 0.0674,
+            "height": 0.0166
+          }
+        }
+      ]
+    },
+    "equity": {
+      "fileId": "statement-2025",
+      "value": 64200,
+      "content": "64 200",
+      "confidence": 0.93,
+      "boundingBoxes": [
+        {
+          "pageNumber": 2,
+          "polygon": [
+            0.8612743386243386,
+            0.1841096146651702,
+            0.9193650793650793,
+            0.1841096146651702,
+            0.9193650793650793,
+            0.2007388701833146,
+            0.8612743386243386,
+            0.2007388701833146
+          ],
+          "bbox": {
+            "x": 0.8613,
+            "y": 0.1841,
+            "width": 0.0581,
+            "height": 0.0166
+          }
+        }
+      ]
+    },
+    "bankLoans": {
+      "fileId": "statement-2025",
+      "value": 39800,
+      "content": "38 900",
+      "confidence": 0.71,
+      "boundingBoxes": [
+        {
+          "pageNumber": 2,
+          "polygon": [
+            0.8612743386243386,
+            0.20786569397680504,
+            0.9193650793650793,
+            0.20786569397680504,
+            0.9193650793650793,
+            0.22449494949494944,
+            0.8612743386243386,
+            0.22449494949494944
+          ],
+          "bbox": {
+            "x": 0.8613,
+            "y": 0.2079,
+            "width": 0.0581,
+            "height": 0.0166
+          }
+        }
+      ]
+    },
+    "otherLiabilities": {
+      "fileId": "statement-2025",
+      "value": 26650,
+      "content": "26 650",
+      "confidence": 0.83,
+      "boundingBoxes": [
+        {
+          "pageNumber": 2,
+          "polygon": [
+            0.8612743386243386,
+            0.2316217732884399,
+            0.9193650793650793,
+            0.2316217732884399,
+            0.9193650793650793,
+            0.2482510288065843,
+            0.8612743386243386,
+            0.2482510288065843
+          ],
+          "bbox": {
+            "x": 0.8613,
+            "y": 0.2316,
+            "width": 0.0581,
+            "height": 0.0166
+          }
+        }
+      ]
+    },
+    "totalLiabilities": {
+      "fileId": "statement-2025",
+      "value": 129750,
+      "content": "129 750",
+      "confidence": 0.96,
+      "boundingBoxes": [
+        {
+          "pageNumber": 2,
+          "polygon": [
+            0.8519341269841271,
+            0.2553778526000748,
+            0.9193650793650794,
+            0.2553778526000748,
+            0.9193650793650794,
+            0.2720071081182192,
+            0.8519341269841271,
+            0.2720071081182192
+          ],
+          "bbox": {
+            "x": 0.8519,
+            "y": 0.2554,
+            "width": 0.0674,
+            "height": 0.0166
+          }
+        }
+      ]
+    }
+  },
+  "checks": [
+    {
+      "id": "balance",
+      "label": "Total assets = total liabilities and equity",
+      "parts": [
+        "totalAssets"
+      ],
+      "total": "totalLiabilities",
+      "status": "passed",
+      "sum": 129750,
+      "expected": 129750,
+      "difference": 0
+    },
+    {
+      "id": "assetsAddUp",
+      "label": "Fixed assets + current assets = total assets",
+      "parts": [
+        "fixedAssets",
+        "currentAssets"
+      ],
+      "total": "totalAssets",
+      "status": "passed",
+      "sum": 129750,
+      "expected": 129750,
+      "difference": 0
+    },
+    {
+      "id": "liabilitiesAddUp",
+      "label": "Equity + bank loans + other liabilities = total liabilities and equity",
+      "parts": [
+        "equity",
+        "bankLoans",
+        "otherLiabilities"
+      ],
+      "total": "totalLiabilities",
+      "status": "failed",
+      "sum": 130650,
+      "expected": 129750,
+      "difference": 900
+    },
+    {
+      "id": "operatingProfitAddsUp",
+      "label": "Revenue + cost of sales + personnel costs + depreciation = operating profit",
+      "parts": [
+        "revenue",
+        "costOfSales",
+        "personnelCosts",
+        "depreciation"
+      ],
+      "total": "operatingProfit",
+      "status": "failed",
+      "sum": 26980,
+      "expected": 26710,
+      "difference": 270
+    },
+    {
+      "id": "netProfitAddsUp",
+      "label": "Operating profit + interest expense + income tax = net profit",
+      "parts": [
+        "operatingProfit",
+        "interestExpense",
+        "incomeTax"
+      ],
+      "total": "netProfit",
+      "status": "failed",
+      "sum": 24380,
+      "expected": 19760,
+      "difference": 4620
+    }
+  ]
+}

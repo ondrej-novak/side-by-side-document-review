@@ -1,0 +1,195 @@
+@use '../styles/variables' as *;
+
+.viewer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.scrollArea {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  // Centering a flex child here causes two-sided overflow when zoomed, which leaves the left
+  // side unreachable because scrollLeft cannot go negative. Keep overflow anchored at start.
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 0;
+}
+
+// Applied only while a click-drag pan is in progress (see enablePanning in viewer/scrollArea.ts) — swaps
+// the cursor and suppresses the text-layer selection a drag would otherwise start underneath it.
+.panning {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.pageWrap {
+  position: relative;
+  line-height: 0;
+  // Center when content is narrower than the viewport; when wider, margins collapse and the full
+  // horizontal overflow stays reachable from scrollLeft=0 to max.
+  margin: 0 auto;
+}
+
+.canvas {
+  display: block;
+}
+
+// pdf.js positions text runs absolutely inside this overlay, transparent over the canvas.
+.textLayer {
+  position: absolute;
+  inset: 0;
+}
+
+// One rectangle per bounding box of an extracted field, positioned via inline style computed from the
+// box's normalized coordinates times the rendered page's pixel size. Multiply blend lets the
+// canvas-rendered page show through the tint instead of being covered by it. Hoverable (it names its
+// field back to the form), so unlike a pure overlay it does take pointer events. Quiet at rest — every
+// extracted field is drawn at once, and a page peppered with filled boxes would fight the document.
+.boundingBoxHighlight {
+  position: absolute;
+  border: 1px dashed var(--color-primary);
+  border-radius: 2px;
+  mix-blend-mode: multiply;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+
+  // Translucent, never a solid tint: whatever the blend mode is doing, a fill on top of the scan must let the
+  // print it frames through, since reading that print is why the reviewer pointed at it.
+  &:hover,
+  &:focus-visible {
+    background-color: var(--color-source-region-fill);
+    border-color: var(--color-primary);
+  }
+}
+
+// The field currently being reviewed. It has to win against a phone photo of thermal paper with a dozen other
+// rectangles on it, so it stops behaving like the others: `multiply` is dropped (multiplied over mid-grey scan
+// pixels the amber turned muddy brown), and the emphasis is built on the box's edge — a solid ring, a halo, a
+// lifted shadow — rather than on its middle. The fill stays a light tint so the print it frames is still
+// legible; a wash strong enough to be seen from across the pane would hide the value being checked.
+//
+// Qualified with the base class, and placed after the hover rule, deliberately: the active region is usually
+// the one under the pointer (hovering it is what made it active), so a bare `.boundingBoxActive` loses the
+// cascade to `.boundingBoxHighlight:hover` and the region renders in its hover styling instead.
+.boundingBoxHighlight.boundingBoxActive {
+  z-index: 1;
+  mix-blend-mode: normal;
+  background-color: var(--color-source-region-fill);
+  border: 2px solid var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-200), 0 3px 12px var(--color-source-region-glow);
+}
+
+// A single ring expanding out of the rectangle as it becomes active — the reviewer's attention is usually on
+// the form side when the highlight moves, and one pulse says where it went without them having to hunt.
+.boundingBoxActive::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border: 2px solid var(--color-primary);
+  border-radius: 3px;
+  pointer-events: none;
+  animation: source-region-pulse 0.5s ease-out 1;
+}
+
+@keyframes source-region-pulse {
+  from { transform: scale(1); opacity: 0.65; }
+  to { transform: scale(1.6); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boundingBoxActive::before {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+.image {
+  display: block;
+  height: auto;
+}
+
+// Floats over the document instead of taking its own row — a frosted-glass pill per logical group,
+// pinned to the top corners. The wrapper ignores pointer events so clicks/scroll reach the document
+// everywhere except the pills themselves.
+.toolbar {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px;
+  pointer-events: none;
+}
+
+// Segmented pill — one bordered, rounded container per logical group (page nav, zoom), with
+// borderless buttons divided by hairlines instead of each button carrying its own border. Reads as
+// a single control rather than a row of separate boxes. Faint at rest, brightens when the pointer
+// or keyboard focus is anywhere on the document — a hint that it's there without competing with it.
+.toolbarGroup {
+  display: flex;
+  align-items: center;
+  pointer-events: auto;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: $radius-full;
+  overflow: hidden;
+  background: var(--color-bg-white-transparent);
+  backdrop-filter: blur(10px) saturate(1.4);
+  box-shadow: $shadow-md;
+  opacity: 0.75;
+  transition: opacity 0.16s ease, box-shadow 0.16s ease;
+
+  .viewer:hover &,
+  &:focus-within {
+    opacity: 1;
+    box-shadow: $shadow-lg;
+  }
+
+  // The group owns the border and rounding, so its buttons drop theirs and are divided by hairlines.
+  > button {
+    border: none;
+    border-radius: 0;
+  }
+
+  > button:not(:first-child) {
+    border-left: 1px solid var(--color-border-default);
+  }
+}
+
+// Layout only — the button chrome comes from the global `iconButton` class it is combined with (the pill
+// strips borders from its children); this just sizes the percentage readout to sit between the two zoom icons.
+.zoomLabel {
+  min-width: 44px;
+  padding: 0 4px;
+  font-size: 0.8rem;
+}
+
+.pageIndicator {
+  font-size: 0.85rem;
+  color: var(--color-font-muted);
+}
+
+.status,
+.fallback {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+  color: var(--color-font-muted);
+}
+
+.fallbackName {
+  font-weight: 600;
+  color: var(--color-font-default);
+  word-break: break-all;
+}

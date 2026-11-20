@@ -1,0 +1,195 @@
+@use '../styles/variables' as *;
+
+// Query container for the stacking rule at the bottom: the layout may sit anywhere from a full page to a
+// narrow side panel, so "do two panes fit" is about the width handed to this layout, not the viewport's. Carries the flex-grow the layout itself can't (a query container cannot restyle
+// itself), so a taller flex-column ancestor still stretches it.
+.container {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex-grow: 1;
+}
+
+// Mirrors .layout.collapsed: with no document to fill it, the layout reverts to its own content height.
+.container.containerCollapsed {
+  flex-grow: 0;
+}
+
+.layout {
+  // Positioning context for the source connector, which is absolutely placed over both panes and measures
+  // its endpoints against this element's box.
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  transition: gap 0.22s ease;
+  width: 100%;
+  // How far below the scroll viewport's top edge the floating document pane comes to rest, and how tall
+  // it is. A host with a sticky header above this layout sets --document-pane-offset to clear it. Both
+  // live here, on the pane's containing block, so the pane's height and the room the layout leaves for it
+  // cannot drift apart.
+  --document-pane-top: var(--document-pane-offset);
+  --document-pane-height: calc(100vh - var(--document-pane-top) - 24px);
+  // Grow to fill a taller flex-column ancestor when one offers extra space — a no-op when the parent is
+  // only as tall as its own content.
+  flex-grow: 1;
+}
+
+.layout.dragging {
+  cursor: col-resize;
+  user-select: none;
+}
+
+// Toggled from a caller's show/hide control — see the gap transition above for the third piece of
+// this animation (the other two, per-pane, live on .docPane / .handle below). Height reverts to
+// content-driven (no grow) since there's no document to justify reserving extra space.
+.layout.collapsed {
+  gap: 0;
+  flex-grow: 0;
+}
+
+.docPane {
+  // Floats: the document is what the reviewer checks every field against, so it stays put in the viewport
+  // while the form beside it scrolls past. Stretched to the row it would have nowhere to travel, so it is
+  // top-aligned at a definite height instead — which also makes it, not the form, the floor under the flex
+  // line's cross size, so the document keeps real viewing room even when the form beside it is short.
+  // `sticky` rather than `fixed` so it stays inside the layout's box: it comes to rest at --document-pane-top
+  // while the layout is on screen and scrolls away with its last row, instead of hovering over whatever
+  // follows. It only floats where nothing between here and the scroll viewport creates a scroll container
+  // of its own — an `overflow: hidden` anywhere in that chain silently pins it.
+  position: sticky;
+  top: var(--document-pane-top);
+  align-self: flex-start;
+  height: var(--document-pane-height);
+  flex-grow: 0;
+  flex-shrink: 0;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  // Height is in the list for the collapse below, where it — not flex-basis — is what gives up the row.
+  transition: flex-basis 0.22s ease, height 0.22s ease, opacity 0.18s ease;
+}
+
+// A collapsed pane keeps no height in either mode. Split, its height is what sets the flex line's cross
+// size, so leaving it would strand the form in a box a viewport tall with nothing beside it; stacked, the
+// inline 0% flex-basis the collapse animates has nothing to shrink and it would leave a blank band between
+// the form and whatever follows it. Outspecifies the stacked override below, so one rule covers both.
+.layout.collapsed .docPane {
+  height: 0;
+}
+
+.contentPane {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+// Shared by .docPane and .handle when a caller sets showDocument={false} — width still animates via
+// each element's own flex-basis (inline style, driven by the prop); this just fades the content so
+// it doesn't flash visible mid-collapse.
+.hiddenPane {
+  opacity: 0;
+  pointer-events: none;
+}
+
+// Hairline at rest; hovering (or dragging, via .layout.dragging below) swaps the seam for a pair of
+// chevrons hinting the drag direction. A wider hit target than the visible 1px seam so it's easy to
+// grab without needing to land on the hairline exactly.
+.handle {
+  position: relative;
+  flex-grow: 0;
+  flex-shrink: 0;
+  cursor: col-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: flex-basis 0.22s ease, opacity 0.18s ease;
+}
+
+.seam {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 1px;
+  background: var(--color-border-default);
+  transition: opacity 0.16s ease;
+}
+
+.chevrons {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  color: var(--color-primary);
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+
+  svg {
+    width: 16px;
+    height: 16px;
+    stroke-width: 2.5;
+  }
+}
+
+.handle:hover .seam {
+  opacity: 0;
+}
+
+.handle:hover .chevrons {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.layout.dragging .handle .seam {
+  opacity: 0;
+}
+
+.layout.dragging .handle .chevrons {
+  opacity: 1;
+  transform: scale(1);
+
+  svg:first-child {
+    transform: translateX(-2px);
+  }
+
+  svg:last-child {
+    transform: translateX(2px);
+  }
+}
+
+// Stack when the space given to the layout is too narrow for two readable panes: form first, document below, no
+// resize handle. Measured on .container (see above) rather than the viewport, so a narrow host — a phone, or a
+// docked side panel — stacks while a wide one splits, without either knowing about the other.
+@container (width <= 760px) {
+  .layout {
+    flex-direction: column;
+    height: auto;
+  }
+
+  // A band under the form rather than a column beside it: no long form runs past it to float alongside,
+  // so it scrolls with the page like everything else. The cross axis is horizontal once the row is a
+  // column, so the stretch has to come back — top-aligned, a band whose only child is absolutely
+  // positioned would collapse to no width at all — and `relative` stands in as that child's containing
+  // block now that `sticky` no longer provides one.
+  .docPane {
+    position: relative;
+    align-self: stretch;
+    flex-basis: auto !important;
+    order: 2;
+    height: 70vh;
+  }
+
+  .contentPane {
+    order: 1;
+    overflow: visible;
+  }
+
+  .handle {
+    display: none;
+  }
+}

@@ -1,0 +1,72 @@
+@use '../styles/variables' as *;
+
+.pane {
+  display: flex;
+  flex-direction: column;
+  // Absolutely positioned within .docPane (not height: 100%) so this pane's content — in particular the
+  // document image, whose rendered height follows its width via aspect-ratio — never contributes to
+  // .docPane's own hypothetical content height. Without this, the flex row's auto height is partly derived
+  // from the image's current rendered size, which is itself derived from the row's height: a circular
+  // measurement that drifts a few pixels smaller on every unrelated re-render.
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.picker {
+  padding: 8px;
+  border-bottom: 1px solid var(--color-border-default);
+  background: var(--color-bg-default);
+}
+
+.viewerHost {
+  flex: 1;
+  min-height: 0;
+}
+
+.empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  color: var(--color-font-muted);
+}
+
+// The empty / failed-to-load stand-in for a document: centred column, icon on top, recovery action last.
+.placeholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-3xl;
+  text-align: center;
+}
+
+.placeholderIcon {
+  font-size: 64px;
+  color: var(--color-text-muted);
+  opacity: 0.6;
+  margin-bottom: $spacing-md;
+}
+
+.placeholderTitle {
+  margin: 0 0 $spacing-sm;
+  font-size: $text-lg;
+  font-weight: $font-weight-semibold;
+  color: var(--color-text-primary);
+}
+
+.placeholderText {
+  // Held well short of the pane's width so the sentence wraps into a readable block instead of one long line
+  // when the document side is wide.
+  max-width: 340px;
+  margin: 0 0 $spacing-lg;
+  font-size: $text-sm;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+
+  // No recovery action follows in the empty case — don't leave its gap hanging under the last line.
+  &:last-child { margin-bottom: 0; }
+}

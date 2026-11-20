@@ -1,0 +1,30 @@
+// Spans both panes and the splitter between them. Never a pointer target: it sits over the form's inputs and
+// the document's own regions, both of which have to stay operable underneath it. `overflow: visible` because
+// an endpoint clamped to a pane edge draws its node half outside the SVG's own box.
+.tether {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow: visible;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.14s ease;
+}
+
+.visible {
+  opacity: 1;
+}
+
+// Dashed rather than solid: the line crosses the form's own fields, and a solid stroke there reads as a
+// divider or an underline instead of a pointer.
+.line {
+  fill: none;
+  stroke: var(--color-primary);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 1 5;
+}
+
+.node {
+  fill: var(--color-primary);
+}
