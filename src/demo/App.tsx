@@ -7,6 +7,10 @@ import { sample } from './sample'
 import { extractDocument, type Extraction } from './extractionApi'
 import styles from './App.module.css'
 
+/** The GitHub Pages build has no API behind it, so it only shows the bundled sample. */
+const STATIC_DEMO = import.meta.env.VITE_STATIC_DEMO === 'true'
+const SERVER_SETUP_URL = 'https://github.com/ondrej-novak/side-by-side-document-review#run-with-the-extraction-api'
+
 interface Review extends Extraction {
   loadDocument: () => Promise<Blob>
 }
@@ -117,10 +121,15 @@ export function App() {
           <h1 className={styles.title}>Document review</h1>
           <p className="mutedText">Check what the AI read from the financial statement, fix what it got wrong, approve the rest.</p>
           <p className="mutedText" role="status">{statusText(status, review)}</p>
+          {STATIC_DEMO && (
+            <p className="mutedText">
+              To review your own PDF, <a href={SERVER_SETUP_URL}>run the extraction API</a> locally.
+            </p>
+          )}
         </div>
         <div className={styles.actions}>
           <div ref={setChecksSlot} className={styles.checksSlot} />
-          <UploadButton busy={status.busy} onFile={(file) => void upload(file)} />
+          {!STATIC_DEMO && <UploadButton busy={status.busy} onFile={(file) => void upload(file)} />}
           <button type="button" className="btnSecondary" onClick={() => setShowDocument((v) => !v)} aria-pressed={showDocument}>
             {showDocument ? 'Hide document' : 'Show document'}
           </button>

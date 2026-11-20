@@ -1,5 +1,8 @@
 # side-by-side-document-review
 
+**[Live demo](https://ondrej-novak.github.io/side-by-side-document-review/)** (runs on a bundled sample; uploading
+your own PDF needs the [extraction API](#run-with-the-extraction-api))
+
 Review what an AI extracted from a document, side by side with the document itself. The PDF sits on the left,
 the extracted values on the right, and each value is linked to the region of the page it was read from.
 
