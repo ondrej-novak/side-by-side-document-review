@@ -11,10 +11,13 @@ the extracted values on the right, and each value is linked to the region of the
   The server looks that text up in the PDF's text layer to place the bounding box. If the quote isn't found, the
   value isn't grounded, so a value the model invented can't point at a real region.
 - **Field review statuses.** Each value starts as an AI suggestion. The reviewer confirms or corrects it, can
-  confirm everything at once, and approves the document at the end.
+  confirm a section's confident values at once, and approves the document at the end. There is no confirming the whole document at once, so the reviewer goes through it section by section.
+  Each section's double-check button sits above the column of field check buttons: blue when it has values to
+  confirm, grey when only low-confidence values are left, green when the section is done. Its tooltip says which.
 - **Consistency checks.** Deterministic accounting checks (total assets equal total liabilities and equity, line
-  items add up to their totals) show warnings on the field groups that break them. "Confirm all" skips fields
-  in groups that fail a check.
+  items add up to their totals) show warnings on the field groups that break them. Confirming a section skips fields in groups that fail a check.
+  An icon in the header sums them up: a warning with the number of failing checks, green when every check adds
+  up, grey when some could not run. Clicking it lists the checks.
 - **Works without a backend.** With no server running, the demo shows a bundled sample extraction. A few of its
   low-confidence values are wrong on purpose, so the checks have something to catch.
 

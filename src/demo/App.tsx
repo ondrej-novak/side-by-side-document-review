@@ -77,7 +77,13 @@ function UploadButton({ busy, onFile }: { busy: boolean; onFile: (file: File) =>
  * The document beside the form. A new document starts a new review: the form is keyed by the document id, so
  * remounting it drops the previous form's edits.
  */
-function ReviewWorkspace({ review, showDocument }: { review: Review; showDocument: boolean }) {
+interface ReviewWorkspaceProps {
+  review: Review
+  showDocument: boolean
+  checksSlot: Element | null
+}
+
+function ReviewWorkspace({ review, showDocument, checksSlot }: ReviewWorkspaceProps) {
   const documents = useMemo(() => [review.document], [review.document])
   const selection = useDocumentSourceSelection(documents, review.fieldSources)
 
@@ -94,7 +100,7 @@ function ReviewWorkspace({ review, showDocument }: { review: Review; showDocumen
         />
       }
     >
-      <ReviewForm key={review.document.id} fieldSources={review.fieldSources} checks={review.checks} />
+      <ReviewForm key={review.document.id} fieldSources={review.fieldSources} checks={review.checks} checksSlot={checksSlot} />
     </DocumentReviewLayout>
   )
 }
@@ -102,23 +108,25 @@ function ReviewWorkspace({ review, showDocument }: { review: Review; showDocumen
 export function App() {
   const { review, status, upload } = useReviewUpload()
   const [showDocument, setShowDocument] = useState(true)
+  const [checksSlot, setChecksSlot] = useState<HTMLDivElement | null>(null)
 
   return (
     <div className={styles.app}>
       <header className={styles.header}>
-        <div>
+        <div className={styles.intro}>
           <h1 className={styles.title}>Document review</h1>
           <p className="mutedText">Check what the AI read from the financial statement, fix what it got wrong, approve the rest.</p>
           <p className="mutedText" role="status">{statusText(status, review)}</p>
         </div>
         <div className={styles.actions}>
+          <div ref={setChecksSlot} className={styles.checksSlot} />
           <UploadButton busy={status.busy} onFile={(file) => void upload(file)} />
           <button type="button" className="btnSecondary" onClick={() => setShowDocument((v) => !v)} aria-pressed={showDocument}>
             {showDocument ? 'Hide document' : 'Show document'}
           </button>
         </div>
       </header>
-      <ReviewWorkspace review={review} showDocument={showDocument} />
+      <ReviewWorkspace review={review} showDocument={showDocument} checksSlot={checksSlot} />
     </div>
   )
 }

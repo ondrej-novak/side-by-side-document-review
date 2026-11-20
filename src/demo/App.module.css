@@ -1,5 +1,9 @@
 .app { max-width: 1400px; margin: 0 auto; padding: 16px; }
-.header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+/* Too narrow for both, the actions wrap to a line of their own, kept on the right. */
+.header { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.intro { flex: 1 1 240px; }
 .title { margin: 0 0 4px; font-size: 20px; }
 .header p { margin: 0; }
-.actions { display: flex; gap: 8px; flex-shrink: 0; }
+/* Positioned so the checks panel opens under the whole action bar, aligned to its right edge. */
+.actions { position: relative; display: flex; gap: 8px; flex-shrink: 0; margin-left: auto; }
+.checksSlot { display: contents; }

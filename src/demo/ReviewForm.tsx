@@ -1,13 +1,14 @@
 import { useReducer, useRef, type RefObject } from 'react'
-import { flushSync } from 'react-dom'
-import { HiCheckCircle, HiExclamationTriangle, HiMinusCircle } from 'react-icons/hi2'
+import { createPortal, flushSync } from 'react-dom'
+import { LuCheckCheck } from 'react-icons/lu'
 import { rulesOf } from '../review-model/consistency'
 import type { FieldStatus } from '../review-model/fieldStatus'
 import {
   bulkConfirmable,
   confirmationOf,
   failedChecksByField,
-  firstPending,
+  firstPendingFrom,
+  LOW_CONFIDENCE,
   nextPending,
   reviewChecks,
   reviewReducer,
@@ -16,13 +17,14 @@ import {
   statusOf,
   type FieldUnderReview,
   type ReviewAction,
-  type ReviewedCheck,
 } from '../review-model/reviewState'
 import type { ConsistencyCheckDto, DocumentFieldSourceDto } from '../types'
+import { toPercent } from '../utils/percent'
+import { checkElementId, ConsistencyIndicator } from './ConsistencyChecks'
 import { ReviewField, type FieldDef } from './ReviewField'
 import styles from './ReviewForm.module.css'
 
-const sections: { title: string; fields: FieldDef[] }[] = [
+const sectionDefs: { title: string; fields: FieldDef[] }[] = [
   {
     title: 'Company',
     fields: [
@@ -60,6 +62,8 @@ const sections: { title: string; fields: FieldDef[] }[] = [
   },
 ]
 
+const sections = sectionDefs.map((section) => ({ ...section, names: section.fields.map((field) => field.name) }))
+
 function fieldsUnderReview(fieldSources: Record<string, DocumentFieldSourceDto>): FieldUnderReview[] {
   return sections.flatMap((section) => section.fields).map(({ name, kind }) => {
     const source = fieldSources[name]
@@ -69,8 +73,9 @@ function fieldsUnderReview(fieldSources: Record<string, DocumentFieldSourceDto>)
 
 /**
  * The review state, and the two moves that also shift focus: Enter (confirm, then the next field to check) and
- * Confirm all (then the first field it left for the reviewer, or Approve when none is left). Focus moves after a
- * synchronous commit, because Approve is still disabled until the render that clears the last pending field.
+ * Confirm section (then the first field it left for the reviewer, from that section on, or Approve when none is left).
+ * Focus moves after a synchronous commit, because Approve is still disabled until the render that clears the last
+ * pending field.
  */
 function useReview(fieldSources: Record<string, DocumentFieldSourceDto>, checks: readonly ConsistencyCheckDto[]) {
   const [review, dispatch] = useReducer(reviewReducer, null, () =>
@@ -99,71 +104,65 @@ function useReview(fieldSources: Record<string, DocumentFieldSourceDto>, checks:
       if (statusOf(review, name) !== 'pending') return focusField(nextPending(review, name))
       dispatchThenFocus({ type: 'toggleConfirm', field: name }, (next) => nextPending(next, name))
     },
-    confirmAll: () => dispatchThenFocus({ type: 'confirmAll' }, firstPending),
+    confirmSection: (fields: readonly string[]) =>
+      dispatchThenFocus({ type: 'confirmSection', fields }, (next) => firstPendingFrom(next, fields[0])),
   }
 }
 
-const checkElementId = (ruleId: string) => `check-${ruleId}`
-const amount = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
-
-function checkNote({ result, failedOnAiValues }: ReviewedCheck): string {
-  switch (result.status) {
-    case 'failed':
-      return `Off by ${amount.format(Math.abs(result.difference))}: the parts add up to ${amount.format(result.sum)}, the total is ${amount.format(result.expected)}`
-    case 'passed':
-      return failedOnAiValues ? 'Adds up after your corrections' : 'Adds up'
-    case 'skipped':
-      return 'Not checked: a value is missing or not a plain number'
-  }
+interface SectionProgress {
+  /** Values in the section nobody has confirmed, corrected or added yet. */
+  pending: number
+  /** Of those, the ones confirming the section would confirm. */
+  confirmable: number
 }
 
-function CheckIcon({ check }: { check: ReviewedCheck }) {
-  if (check.result.status === 'failed') return <HiExclamationTriangle className={styles.checkIconFailed} aria-hidden="true" />
-  if (check.result.status === 'passed') return <HiCheckCircle className={styles.checkIconPassed} aria-hidden="true" />
-  return <HiMinusCircle className={styles.checkIconSkipped} aria-hidden="true" />
+const values = (count: number) => `${count} value${count === 1 ? '' : 's'}`
+
+function sectionHint({ pending, confirmable }: SectionProgress): string {
+  if (pending === 0) return 'Every value in this section is checked'
+  if (confirmable === 0) {
+    return `${values(pending)} left to check one by one: the AI was unsure, or they are in a check that does not add up`
+  }
+  const rest = pending - confirmable
+  const confident = `Confirm the ${values(confirmable)} the AI was at least ${toPercent(LOW_CONFIDENCE)} % sure of`
+  return rest === 0 ? confident : `${confident}; ${values(rest)} more to check one by one`
+}
+
+interface SectionConfirmProps extends SectionProgress {
+  title: string
+  onConfirm: () => void
 }
 
 /**
- * The sums a correct statement always satisfies, on the values as they stand. A failed check cannot say which value
- * is wrong, only which group to go through, so it warns and marks the fields instead of blocking approval.
+ * Confirms the section's confident values at once, from the head of the column of field check buttons. Its tooltip
+ * says what it would confirm, or why there is nothing for it to do; aria-disabled rather than disabled keeps that
+ * tooltip reachable by hover and focus.
  */
-function ConsistencyChecks({ checks }: { checks: ReviewedCheck[] }) {
-  if (checks.length === 0) return null
-  const failing = checks.filter((check) => check.result.status === 'failed').length
+function SectionConfirm({ title, pending, confirmable, onConfirm }: SectionConfirmProps) {
+  const inactive = confirmable === 0
   return (
-    <section className={styles.section} aria-labelledby="consistency-checks-title">
-      <h2 id="consistency-checks-title" className={styles.checksTitle}>Consistency checks</h2>
-      <p className={styles.checksSummary}>
-        {failing === 0
-          ? 'Every check that could run adds up.'
-          : `${failing} of ${checks.length} do not add up. Their fields are marked, and Confirm all leaves them to you.`}
-      </p>
-      <ul className={styles.checks}>
-        {checks.map((check) => (
-          <li
-            key={check.rule.id}
-            id={checkElementId(check.rule.id)}
-            className={`${styles.check} ${check.result.status === 'failed' ? styles.checkFailing : ''}`}
-          >
-            <CheckIcon check={check} />
-            <span>{check.rule.label}</span>
-            <span className={styles.checkNote}>{checkNote(check)}</span>
-          </li>
-        ))}
-      </ul>
-    </section>
+    <button
+      type="button"
+      className={`iconButton ${styles.sectionConfirm} ${pending === 0 ? styles.sectionDone : ''}`}
+      aria-label={`Confirm section: ${title}`}
+      title={sectionHint({ pending, confirmable })}
+      aria-disabled={inactive}
+      onClick={() => {
+        if (!inactive) onConfirm()
+      }}
+    >
+      <LuCheckCheck strokeWidth={1.5} aria-hidden="true" />
+    </button>
   )
 }
 
 interface ReviewFooterProps {
   summary: Record<FieldStatus, number>
   approved: boolean
-  canConfirmAll: boolean
-  onConfirmAll: () => void
   approveRef: RefObject<HTMLButtonElement | null>
 }
 
-function ReviewFooter({ summary, approved, canConfirmAll, onConfirmAll, approveRef }: ReviewFooterProps) {
+function ReviewFooter({ summary, approved, approveRef }: ReviewFooterProps) {
   const total = summary.pending + summary.confirmed + summary.corrected + summary.added
   const progress = approved
     ? `Approved: ${summary.confirmed} confirmed, ${summary.corrected} corrected, ${summary.added} added`
@@ -171,20 +170,9 @@ function ReviewFooter({ summary, approved, canConfirmAll, onConfirmAll, approveR
   return (
     <div className={styles.footer}>
       <span aria-live="polite">{progress}</span>
-      <div className={styles.footerActions}>
-        <button
-          type="button"
-          className="btnSecondary"
-          disabled={approved || !canConfirmAll}
-          title="Confirms every unchecked field the AI was at least 75 % sure of, outside checks that do not add up; the rest you check one by one"
-          onClick={onConfirmAll}
-        >
-          Confirm all
-        </button>
-        <button ref={approveRef} type="submit" className="btnPrimary" disabled={approved || summary.pending > 0}>
-          Approve document
-        </button>
-      </div>
+      <button ref={approveRef} type="submit" className="btnPrimary" disabled={approved || summary.pending > 0}>
+        Approve document
+      </button>
     </div>
   )
 }
@@ -192,14 +180,17 @@ function ReviewFooter({ summary, approved, canConfirmAll, onConfirmAll, approveR
 interface ReviewFormProps {
   fieldSources: Record<string, DocumentFieldSourceDto>
   checks?: readonly ConsistencyCheckDto[]
+  /** Where the consistency checks indicator goes, outside the form; without one it is not shown. */
+  checksSlot?: Element | null
 }
 
 /**
  * The extracted values to review. Each one is confirmed, corrected or added by the reviewer before the document can
- * be approved; Enter confirms the focused value and moves to the next one still to check.
+ * be approved; Enter confirms the focused value and moves to the next one still to check. The checks indicator is
+ * rendered into the host's slot but stays part of this review, so it follows the values as they are edited.
  */
-export function ReviewForm({ fieldSources, checks = [] }: ReviewFormProps) {
-  const { review, dispatch, formRef, approveRef, confirmAndAdvance, confirmAll } = useReview(fieldSources, checks)
+export function ReviewForm({ fieldSources, checks = [], checksSlot }: ReviewFormProps) {
+  const { review, dispatch, formRef, approveRef, confirmAndAdvance, confirmSection } = useReview(fieldSources, checks)
   const failedChecks = failedChecksByField(review)
 
   return (
@@ -207,10 +198,16 @@ export function ReviewForm({ fieldSources, checks = [] }: ReviewFormProps) {
       e.preventDefault()
       dispatch({ type: 'approve' })
     }}>
-      <ConsistencyChecks checks={reviewChecks(review)} />
+      {checksSlot && createPortal(<ConsistencyIndicator checks={reviewChecks(review)} />, checksSlot)}
       {sections.map((section) => (
         <fieldset key={section.title} className={styles.section}>
           <legend className={styles.legend}>{section.title}</legend>
+          <SectionConfirm
+            title={section.title}
+            pending={section.names.filter((name) => statusOf(review, name) === 'pending').length}
+            confirmable={review.approved ? 0 : bulkConfirmable(review, section.names).length}
+            onConfirm={() => confirmSection(section.names)}
+          />
           {section.fields.map((field) => (
             <ReviewField
               key={field.name}
@@ -228,13 +225,7 @@ export function ReviewForm({ fieldSources, checks = [] }: ReviewFormProps) {
           ))}
         </fieldset>
       ))}
-      <ReviewFooter
-        summary={reviewSummary(review)}
-        approved={review.approved}
-        canConfirmAll={bulkConfirmable(review).length > 0}
-        onConfirmAll={confirmAll}
-        approveRef={approveRef}
-      />
+      <ReviewFooter summary={reviewSummary(review)} approved={review.approved} approveRef={approveRef} />
     </form>
   )
 }

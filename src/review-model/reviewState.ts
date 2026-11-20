@@ -14,8 +14,8 @@ export interface FieldUnderReview {
 }
 
 /**
- * How a value was confirmed. A bulk confirmation is weaker evidence that the value was looked at, so it is kept
- * apart for whoever later measures the AI's accuracy from these decisions.
+ * How a value was confirmed: on its own, or with the rest of its section. A bulk confirmation is weaker evidence that
+ * the value was looked at, so it is kept apart for whoever later measures the AI's accuracy from these decisions.
  */
 export type ConfirmMethod = 'single' | 'bulk'
 
@@ -39,7 +39,7 @@ export interface ReviewedCheck {
 export type ReviewAction =
   | { type: 'edit'; field: string; value: string }
   | { type: 'toggleConfirm'; field: string }
-  | { type: 'confirmAll' }
+  | { type: 'confirmSection'; fields: readonly string[] }
   | { type: 'approve' }
 
 export function startReview(fields: readonly FieldUnderReview[], rules: readonly ConsistencyRule[] = []): ReviewState {
@@ -54,6 +54,15 @@ export function reviewChecks(state: ReviewState): ReviewedCheck[] {
     result: evaluateRule(rule, state.values),
     failedOnAiValues: evaluateRule(rule, aiValues).status === 'failed',
   }))
+}
+
+/** All the checks taken together; any check that could not run withholds the all-clear. */
+export type ChecksOutcome = 'failing' | 'incomplete' | 'consistent'
+
+export function checksOutcome(checks: readonly ReviewedCheck[]): ChecksOutcome {
+  if (checks.some((check) => check.result.status === 'failed')) return 'failing'
+  if (checks.some((check) => check.result.status === 'skipped')) return 'incomplete'
+  return 'consistent'
 }
 
 /** For each field in a check that does not add up now, the ids of those checks: the groups to go through. */
@@ -89,28 +98,35 @@ export function reviewSummary(state: ReviewState): Record<FieldStatus, number> {
 }
 
 /**
- * The pending fields "Confirm all" would confirm: those the AI was confident about, outside any check that does not
- * add up. A confident value in a failing sum is exactly where a bulk confirmation would wave a mistake through.
+ * The pending fields of a section that confirming the section would confirm: those the AI was confident about,
+ * outside any check that does not add up. A confident value in a failing sum is exactly where a bulk confirmation
+ * would wave a mistake through. There is no confirming the whole document at once: one section at a time keeps the
+ * reviewer looking at the values being confirmed.
  */
-export function bulkConfirmable(state: ReviewState): string[] {
+export function bulkConfirmable(state: ReviewState, section: readonly string[]): string[] {
   const inFailedCheck = failedChecksByField(state)
   return state.fields
-    .filter((field) => (field.aiConfidence ?? 0) >= LOW_CONFIDENCE)
+    .filter((field) => section.includes(field.name) && (field.aiConfidence ?? 0) >= LOW_CONFIDENCE)
     .filter((field) => !inFailedCheck.has(field.name) && statusOf(state, field.name) === 'pending')
     .map((field) => field.name)
 }
 
-/** The first pending field in form order; undefined when none is. */
-export function firstPending(state: ReviewState): string | undefined {
-  return state.fields.find((field) => statusOf(state, field.name) === 'pending')?.name
+/** Field names in form order starting at `index`, wrapping around to the ones above it. */
+function namesFrom(state: ReviewState, index: number): string[] {
+  const names = state.fields.map((field) => field.name)
+  return [...names.slice(index), ...names.slice(0, index)]
+}
+
+/** The first pending field from `from` on in form order, `from` included, wrapping around; undefined when none is. */
+export function firstPendingFrom(state: ReviewState, from: string): string | undefined {
+  const index = Math.max(state.fields.findIndex((field) => field.name === from), 0)
+  return namesFrom(state, index).find((name) => statusOf(state, name) === 'pending')
 }
 
 /** The first pending field after `after` in form order, wrapping around; undefined when no other is pending. */
 export function nextPending(state: ReviewState, after: string): string | undefined {
-  const names = state.fields.map((field) => field.name)
-  const index = names.indexOf(after)
-  const rest = index < 0 ? names : [...names.slice(index + 1), ...names.slice(0, index)]
-  return rest.find((name) => statusOf(state, name) === 'pending')
+  const index = state.fields.findIndex((field) => field.name === after)
+  return namesFrom(state, index + 1).find((name) => name !== after && statusOf(state, name) === 'pending')
 }
 
 /** Editing withdraws a confirmation: what was confirmed is the earlier value, not whatever the field holds now. */
@@ -130,9 +146,9 @@ function toggleConfirm(state: ReviewState, field: string): ReviewState {
   return { ...state, confirmed }
 }
 
-function confirmAll(state: ReviewState): ReviewState {
+function confirmSection(state: ReviewState, section: readonly string[]): ReviewState {
   const confirmed = new Map(state.confirmed)
-  for (const name of bulkConfirmable(state)) confirmed.set(name, 'bulk')
+  for (const name of bulkConfirmable(state, section)) confirmed.set(name, 'bulk')
   return { ...state, confirmed }
 }
 
@@ -144,8 +160,8 @@ export function reviewReducer(state: ReviewState, action: ReviewAction): ReviewS
       return edit(state, action)
     case 'toggleConfirm':
       return toggleConfirm(state, action.field)
-    case 'confirmAll':
-      return confirmAll(state)
+    case 'confirmSection':
+      return confirmSection(state, action.fields)
     case 'approve':
       return reviewSummary(state).pending === 0 ? { ...state, approved: true } : state
   }

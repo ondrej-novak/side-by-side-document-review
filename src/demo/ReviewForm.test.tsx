@@ -4,10 +4,16 @@ import { ReviewForm } from './ReviewForm'
 import { sample } from './sample'
 
 const renderForm = () => render(<ReviewForm fieldSources={sample.fieldSources} />)
-const renderWithChecks = () => render(<ReviewForm fieldSources={sample.fieldSources} checks={sample.checks} />)
+const renderWithChecks = () =>
+  render(<ReviewForm fieldSources={sample.fieldSources} checks={sample.checks} checksSlot={document.body} />)
+const checksButton = () => screen.getByRole('button', { name: /^Consistency checks:/ })
 const checksPanel = () => within(screen.getByRole('region', { name: 'Consistency checks' }))
+const panelShown = () => screen.queryByRole('region', { name: 'Consistency checks' }) !== null
 const input = (label: string) => screen.getByLabelText(label) as HTMLInputElement
 const confirmButton = (label: string) => screen.getByRole('button', { name: `Confirm ${label}` })
+const fieldConfirmButtons = () => screen.getAllByRole('button', { name: /^Confirm (?!section:)/ })
+const sectionButton = (title: string) => screen.getByRole('button', { name: `Confirm section: ${title}` })
+const sectionInactive = (title: string) => sectionButton(title).getAttribute('aria-disabled') === 'true'
 const approveButton = () => screen.getByRole('button', { name: 'Approve document' }) as HTMLButtonElement
 const pressed = (label: string) => confirmButton(label).getAttribute('aria-pressed')
 
@@ -57,7 +63,7 @@ describe('ReviewForm', () => {
     fireEvent.change(input('Depreciation'), { target: { value: '-6410' } })
     expect(approveButton().disabled).toBe(true)
 
-    for (const button of screen.getAllByRole('button', { name: /^Confirm / })) fireEvent.click(button)
+    for (const button of fieldConfirmButtons()) fireEvent.click(button)
     expect(approveButton().disabled).toBe(false)
     fireEvent.click(approveButton())
 
@@ -65,21 +71,65 @@ describe('ReviewForm', () => {
     expect(screen.getByText('Approved: 19 confirmed, 1 corrected, 0 added')).toBeTruthy()
   })
 
-  it('confirms all confident fields at once, then sends the reviewer to the first one left to check', () => {
+  it('confirms the confident fields of one section, then sends the reviewer to the first one it left to check', () => {
     renderForm()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm all' }))
+    fireEvent.click(sectionButton('Profit and loss (thousands)'))
 
     expect(pressed('Revenue')).toBe('true')
     expect(pressed('Depreciation')).toBe('false')
     expect(pressed('Interest expense')).toBe('false')
+    expect(pressed('Company name')).toBe('false')
+    expect(pressed('Fixed assets')).toBe('false')
     expect(document.activeElement).toBe(input('Depreciation'))
     expect(approveButton().disabled).toBe(true)
   })
 
+  it('moves on to the next section once a section has nothing left to check, and turns its button off', () => {
+    renderForm()
+
+    fireEvent.click(sectionButton('Company'))
+
+    expect(pressed('Company name')).toBe('true')
+    expect(document.activeElement).toBe(input('Revenue'))
+    expect(sectionInactive('Company')).toBe(true)
+    expect(sectionButton('Company').title).toBe('Every value in this section is checked')
+  })
+
+  it('says what confirming a section would do, and why it cannot once only uncertain values are left', () => {
+    renderForm()
+    const section = 'Profit and loss (thousands)'
+    expect(sectionButton(section).title).toBe(
+      'Confirm the 6 values the AI was at least 75 % sure of; 2 values more to check one by one',
+    )
+
+    fireEvent.click(sectionButton(section))
+
+    expect(sectionInactive(section)).toBe(true)
+    expect(sectionButton(section).title).toBe(
+      '2 values left to check one by one: the AI was unsure, or they are in a check that does not add up',
+    )
+  })
+
+  it('does nothing when pressed with nothing to confirm', () => {
+    renderForm()
+    fireEvent.click(sectionButton('Company'))
+    input('Currency').focus()
+
+    fireEvent.click(sectionButton('Company'))
+
+    expect(document.activeElement).toBe(input('Currency'))
+  })
+
+  it('has no way to confirm the whole document at once', () => {
+    renderForm()
+
+    expect(screen.queryByRole('button', { name: 'Confirm all' })).toBeNull()
+  })
+
   it('moves to Approve document after Enter on the last field to check', () => {
     renderForm()
-    const buttons = screen.getAllByRole('button', { name: /^Confirm / })
+    const buttons = fieldConfirmButtons()
     for (const button of buttons.slice(0, -1)) fireEvent.click(button)
     const last = input('Total liabilities and equity')
     last.focus()
@@ -91,8 +141,45 @@ describe('ReviewForm', () => {
 })
 
 describe('ReviewForm consistency checks', () => {
+  it('shows on its button how many checks fail, and lists them once opened', () => {
+    renderWithChecks()
+    expect(checksButton().getAttribute('aria-label')).toBe('Consistency checks: 3 of 5 do not add up')
+    expect(checksButton().getAttribute('aria-expanded')).toBe('false')
+    expect(panelShown()).toBe(false)
+
+    fireEvent.click(checksButton())
+
+    expect(checksButton().getAttribute('aria-expanded')).toBe('true')
+    expect(checksPanel().getByText('3 of 5 do not add up. Their fields are marked, and confirming a section leaves them to you.')).toBeTruthy()
+  })
+
+  it('gives the all-clear once corrections make every check add up, and withholds it while one cannot run', () => {
+    renderWithChecks()
+
+    fireEvent.change(input('Depreciation'), { target: { value: '-6140' } })
+    fireEvent.change(input('Interest expense'), { target: { value: '-2310' } })
+    fireEvent.change(input('Bank loans'), { target: { value: '38900' } })
+    expect(checksButton().getAttribute('aria-label')).toBe('Consistency checks: all add up')
+
+    fireEvent.change(input('Revenue'), { target: { value: '' } })
+    expect(checksButton().getAttribute('aria-label')).toBe('Consistency checks: none fails, but some could not run')
+  })
+
+  it('closes on Escape and on a press outside it', () => {
+    renderWithChecks()
+    fireEvent.click(checksButton())
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(panelShown()).toBe(false)
+
+    fireEvent.click(checksButton())
+    fireEvent.pointerDown(input('Revenue'))
+    expect(panelShown()).toBe(false)
+  })
+
   it('warns about a sum the AI values break, and says so once a correction puts it right', () => {
     renderWithChecks()
+    fireEvent.click(checksButton())
     expect(checksPanel().getByText('Off by 900: the parts add up to 130,650, the total is 129,750')).toBeTruthy()
     expect(input('Equity').getAttribute('aria-describedby')).toContain('check-liabilitiesAddUp')
 
@@ -102,21 +189,20 @@ describe('ReviewForm consistency checks', () => {
     expect(input('Equity').getAttribute('aria-describedby') ?? '').not.toContain('check-liabilitiesAddUp')
   })
 
-  it('leaves the fields of a failing check out of Confirm all', () => {
+  it('leaves the fields of a failing check out of the section confirmation', () => {
     renderWithChecks()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm all' }))
+    fireEvent.click(sectionButton('Balance sheet (thousands)'))
 
     expect(pressed('Total assets')).toBe('true')
     expect(pressed('Equity')).toBe('false')
-    expect(pressed('Revenue')).toBe('false')
-    expect(document.activeElement).toBe(input('Revenue'))
+    expect(document.activeElement).toBe(input('Equity'))
   })
 
   it('does not block approval', () => {
     renderWithChecks()
 
-    for (const button of screen.getAllByRole('button', { name: /^Confirm / })) fireEvent.click(button)
+    for (const button of fieldConfirmButtons()) fireEvent.click(button)
 
     expect(approveButton().disabled).toBe(false)
   })

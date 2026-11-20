@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { normalizeValue } from './fieldStatus'
 import type { ConsistencyRule } from './consistency'
 import {
+  checksOutcome,
   confirmationOf,
   failedChecksByField,
-  firstPending,
+  firstPendingFrom,
   nextPending,
   reviewChecks,
   reviewReducer,
@@ -27,7 +28,8 @@ function review(...actions: ReviewAction[]): ReviewState {
 
 const edit = (field: string, value: string): ReviewAction => ({ type: 'edit', field, value })
 const confirm = (field: string): ReviewAction => ({ type: 'toggleConfirm', field })
-const confirmAll: ReviewAction = { type: 'confirmAll' }
+const confirmSection = (...fields: string[]): ReviewAction => ({ type: 'confirmSection', fields })
+const wholeForm = confirmSection('revenue', 'depreciation', 'bankLoans', 'companyName')
 const approve: ReviewAction = { type: 'approve' }
 
 describe('normalizeValue', () => {
@@ -81,23 +83,30 @@ describe('field status', () => {
   })
 })
 
-describe('confirming all', () => {
-  it('confirms every pending field the AI was confident about, and records that it was in bulk', () => {
-    const state = review(confirmAll)
+describe('confirming a section', () => {
+  it('confirms every pending field of the section the AI was confident about, and records that it was in bulk', () => {
+    const state = review(wholeForm)
 
     expect(statusOf(state, 'revenue')).toBe('confirmed')
     expect(confirmationOf(state, 'revenue')).toBe('bulk')
   })
 
+  it('leaves fields outside the section alone, however confident the AI was', () => {
+    const state = review(confirmSection('revenue', 'depreciation'))
+
+    expect(statusOf(state, 'revenue')).toBe('confirmed')
+    expect(statusOf(state, 'companyName')).toBe('pending')
+  })
+
   it('leaves low-confidence fields, and fields without a confidence, for the reviewer to check one by one', () => {
-    const state = review(confirmAll)
+    const state = review(wholeForm)
 
     expect(statusOf(state, 'depreciation')).toBe('pending')
     expect(statusOf(state, 'bankLoans')).toBe('pending')
   })
 
   it('leaves corrected fields and earlier single confirmations as they are', () => {
-    const state = review(confirm('companyName'), edit('revenue', '1'), confirmAll)
+    const state = review(confirm('companyName'), edit('revenue', '1'), wholeForm)
 
     expect(confirmationOf(state, 'companyName')).toBe('single')
     expect(statusOf(state, 'revenue')).toBe('corrected')
@@ -138,6 +147,14 @@ describe('consistency checks', () => {
     ])
   })
 
+  it('are failing while any does not add up, and consistent only once every one runs and adds up', () => {
+    const corrected = edit('bankLoans', '38900')
+
+    expect(checksOutcome(reviewChecks(balanceSheet()))).toBe('failing')
+    expect(checksOutcome(reviewChecks(balanceSheet(corrected)))).toBe('consistent')
+    expect(checksOutcome(reviewChecks(balanceSheet(corrected, edit('equity', ''))))).toBe('incomplete')
+  })
+
   it('mark every field of a failing check, the total included', () => {
     const marked = failedChecksByField(balanceSheet())
 
@@ -145,16 +162,18 @@ describe('consistency checks', () => {
     expect(marked.get('equity')).toEqual(['liabilitiesAddUp'])
   })
 
-  it('keep their fields out of Confirm all, however confident the AI was', () => {
-    const state = balanceSheet(confirmAll)
+  const balanceSheetSection = confirmSection('totalAssets', 'equity', 'bankLoans', 'otherLiabilities', 'totalLiabilities')
+
+  it('keep their fields out of a section confirmation, however confident the AI was', () => {
+    const state = balanceSheet(balanceSheetSection)
 
     expect(statusOf(state, 'totalAssets')).toBe('confirmed')
     expect(statusOf(state, 'equity')).toBe('pending')
     expect(statusOf(state, 'totalLiabilities')).toBe('pending')
   })
 
-  it('give their fields back to Confirm all once the sum adds up', () => {
-    expect(statusOf(balanceSheet(edit('bankLoans', '38900'), confirmAll), 'equity')).toBe('confirmed')
+  it('give their fields back to the section confirmation once the sum adds up', () => {
+    expect(statusOf(balanceSheet(edit('bankLoans', '38900'), balanceSheetSection), 'equity')).toBe('confirmed')
   })
 })
 
@@ -187,9 +206,11 @@ describe('nextPending', () => {
     expect(nextPending(review(), 'companyName')).toBe('revenue')
   })
 
-  it('starts from the top for firstPending', () => {
-    expect(firstPending(review(confirm('revenue')))).toBe('depreciation')
-    expect(firstPending(review(confirmAll, confirm('depreciation'), confirm('bankLoans')))).toBeUndefined()
+  it('starts at the given field itself for firstPendingFrom, wrapping around', () => {
+    expect(firstPendingFrom(review(), 'bankLoans')).toBe('bankLoans')
+    expect(firstPendingFrom(review(confirm('revenue')), 'revenue')).toBe('depreciation')
+    expect(firstPendingFrom(review(confirm('bankLoans'), confirm('companyName')), 'bankLoans')).toBe('revenue')
+    expect(firstPendingFrom(review(wholeForm, confirm('depreciation'), confirm('bankLoans')), 'revenue')).toBeUndefined()
   })
 
   it('is undefined when nothing else is pending', () => {
